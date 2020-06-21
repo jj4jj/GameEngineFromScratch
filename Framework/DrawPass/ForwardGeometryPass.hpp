@@ -14,7 +14,7 @@ class ForwardGeometryPass : public BaseDrawPass {
 #if !defined(OS_WEBASSEMBLY)
         // m_DrawSubPasses.push_back(std::make_shared<TerrainSubPass>());
 #endif
-        m_DrawSubPasses.push_back(std::make_shared<DebugOverlaySubPass>());
+        // m_DrawSubPasses.push_back(std::make_shared<DebugOverlaySubPass>());
         m_DrawSubPasses.push_back(std::make_shared<GuiSubPass>());
     }
 };
