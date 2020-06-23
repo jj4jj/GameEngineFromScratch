@@ -37,9 +37,9 @@ struct MtlDrawBatchContext : public DrawBatchContext {
 
 - (void)createIndexBuffer:(const My::SceneObjectIndexArray &)index_array;
 
-- (intptr_t)createTexture:(const My::Image &)image;
+- (texture_id)createTexture:(const My::Image &)image;
 
-- (intptr_t)createSkyBox:(const std::vector<const std::shared_ptr<My::Image>> &)images;
+- (texture_id)createSkyBox:(const std::vector<const std::shared_ptr<My::Image>> &)images;
 
 - (void)beginFrame:(const My::Frame &)frame;
 
@@ -56,62 +56,29 @@ struct MtlDrawBatchContext : public DrawBatchContext {
 - (void)setPipelineState:(const MetalPipelineState &)pipelineState
             frameContext:(const Frame &)frame;
 
-- (intptr_t)generateCubeShadowMapArray:(const uint32_t)width
+- (texture_id)generateCubeShadowMapArray:(const uint32_t)width
                                 height:(const uint32_t)height
                                  count:(const uint32_t)count;
 
-- (intptr_t)generateShadowMapArray:(const uint32_t)width
+- (texture_id)generateShadowMapArray:(const uint32_t)width
                             height:(const uint32_t)height
                              count:(const uint32_t)count;
 
 - (void)beginShadowMap:(const int32_t)light_index
-             shadowmap:(const intptr_t)shadowmap
-                 width:(const uint32_t)width
-                height:(const uint32_t)height
-           layer_index:(const int32_t)layer_index
+             shadowmap:(const texture_id&)shadowmap
                  frame:(const Frame &)frame;
 
-- (void)endShadowMap:(const intptr_t)shadowmap layer_index:(const int32_t)layer_index;
+- (void)endShadowMap:(const texture_id&)shadowmap;
 
 - (void)setShadowMaps:(const Frame &)frame;
 
-- (void)releaseTexture:(intptr_t)texture;
+- (void)releaseTexture:(texture_id&)texture;
 
-- (intptr_t)generateTextureForWrite:(const uint32_t)width height:(const uint32_t)height;
+- (texture_id)generateTextureForWrite:(const uint32_t)width height:(const uint32_t)height;
 
-- (void)bindTextureForWrite:(const intptr_t)texture atIndex:(const uint32_t)atIndex;
+- (void)bindTextureForWrite:(const texture_id&)texture atIndex:(const uint32_t)atIndex;
 
 - (void)dispatch:(const uint32_t)width height:(const uint32_t)height depth:(const uint32_t)depth;
-
-#ifdef DEBUG
-- (void)drawTextureOverlay:(const intptr_t)texture
-                   vp_left:(const float)vp_left
-                    vp_top:(const float)vp_top
-                  vp_width:(const float)vp_width
-                 vp_height:(const float)vp_height;
-
-- (void)drawTextureArrayOverlay:(const intptr_t)texture
-                    layer_index:(const float)layer_index
-                        vp_left:(const float)vp_left
-                         vp_top:(const float)vp_top
-                       vp_width:(const float)vp_width
-                      vp_height:(const float)vp_height;
-
-- (void)drawCubeMapOverlay:(const intptr_t)texture
-                   vp_left:(const float)vp_left
-                    vp_top:(const float)vp_top
-                  vp_width:(const float)vp_width
-                 vp_height:(const float)vp_height
-                     level:(const float)level;
-
-- (void)drawCubeMapArrayOverlay:(const intptr_t)texture
-                    layer_index:(const float)layer_index
-                        vp_left:(const float)vp_left
-                         vp_top:(const float)vp_top
-                       vp_width:(const float)vp_width
-                      vp_height:(const float)vp_height
-                          level:(const float)level;
-#endif
 
 @property(nonnull, readonly, nonatomic) id<MTLDevice> device;
 

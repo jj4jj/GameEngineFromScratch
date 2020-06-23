@@ -37,23 +37,23 @@ class GraphicsManager : _implements_ IRuntimeModule {
 
     virtual void DrawBatch(const Frame& frame) {}
 
-    virtual intptr_t GenerateCubeShadowMapArray(const uint32_t width,
+    virtual texture_id GenerateCubeShadowMapArray(const uint32_t width,
                                                const uint32_t height,
                                                const uint32_t count) {
-        return 0;
+        texture_id id;
+        return id;
     }
-    virtual intptr_t GenerateShadowMapArray(const uint32_t width,
+    virtual texture_id GenerateShadowMapArray(const uint32_t width,
                                            const uint32_t height,
                                            const uint32_t count) {
-        return 0;
+        texture_id id;
+        return id;
     }
     virtual void BeginShadowMap(const int32_t light_index,
-                                const intptr_t shadowmap, const uint32_t width,
-                                const uint32_t height,
-                                const int32_t layer_index, const Frame& frame) {
+                                const texture_id& shadowmap,
+                                const Frame& frame) {
     }
-    virtual void EndShadowMap(const intptr_t shadowmap,
-                              const int32_t layer_index) {}
+    virtual void EndShadowMap(const texture_id& shadowmap) {}
     virtual void SetShadowMaps(const Frame& frame) {}
 
     // skybox
@@ -62,7 +62,7 @@ class GraphicsManager : _implements_ IRuntimeModule {
     virtual void GenerateTexture(const char* id, const uint32_t width,
                                  const uint32_t height) {}
     virtual void CreateTexture(SceneObjectTexture& texture) {}
-    virtual void ReleaseTexture(intptr_t texture) {}
+    virtual void ReleaseTexture(texture_id& texture) {}
     virtual void BeginRenderToTexture(int32_t& context, const int32_t texture,
                                       const uint32_t width,
                                       const uint32_t height) {}
@@ -76,7 +76,7 @@ class GraphicsManager : _implements_ IRuntimeModule {
     virtual void Dispatch(const uint32_t width, const uint32_t height,
                           const uint32_t depth) {}
 
-    virtual intptr_t GetTexture(const char* id);
+    virtual texture_id* GetTexture(const char* id);
 
     virtual void DrawFullScreenQuad() {}
 
@@ -97,19 +97,6 @@ class GraphicsManager : _implements_ IRuntimeModule {
                               const Matrix4X4f& trans, const Vector3f& color) {}
     virtual void DrawTriangleStrip(const PointList& vertices,
                                    const Vector3f& color) {}
-    virtual void DrawTextureOverlay(const intptr_t texture, const float vp_left,
-                                    const float vp_top, const float vp_width,
-                                    const float vp_height) {}
-    virtual void DrawTextureArrayOverlay(
-        const intptr_t texture, const float layer_index, const float vp_left,
-        const float vp_top, const float vp_width, const float vp_height) {}
-    virtual void DrawCubeMapOverlay(const intptr_t cubemap, const float vp_left,
-                                    const float vp_top, const float vp_width,
-                                    const float vp_height, const float level) {}
-    virtual void DrawCubeMapArrayOverlay(
-        const intptr_t cubemap, const float layer_index, const float vp_left,
-        const float vp_top, const float vp_width, const float vp_height,
-        const float level) {}
     virtual void ClearDebugBuffers() {}
 
     void DrawEdgeList(const EdgeList& edges, const Vector3f& color);
@@ -151,7 +138,7 @@ class GraphicsManager : _implements_ IRuntimeModule {
     void UpdateConstants();
 
    protected:
-    std::map<std::string, intptr_t> m_Textures;
+    std::map<std::string, texture_id> m_Textures;
 
     uint64_t m_nSceneRevision{0};
 

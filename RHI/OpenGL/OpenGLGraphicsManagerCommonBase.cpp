@@ -336,9 +336,12 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
 
                                 glBindTexture(GL_TEXTURE_2D, 0);
 
-                                m_Textures[texture_key] = texture_id;
+                                m_Textures[texture_key].texture = texture_id;
+                                m_Textures[texture_key].width = texture->Width;
+                                m_Textures[texture_key].height = texture->Height;
+                                m_Textures[texture_key].depth = 1;
                             } else {
-                                texture_id = static_cast<uint32_t>(it->second);
+                                texture_id = static_cast<uint32_t>(it->second.texture);
                             }
 
                             return texture_id;
@@ -349,10 +352,11 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                     if (color.ValueMap) {
                         const auto& texture_key = color.ValueMap->GetName();
                         const auto& texture = color.ValueMap->GetTextureImage();
-                        uint32_t texture_id =
-                            upload_texture(texture_key, texture);
-                        dbc->material.diffuseMap =
-                            static_cast<int32_t>(texture_id);
+                        dbc->material.diffuseMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.diffuseMap.width = texture->Width;
+                        dbc->material.diffuseMap.height = texture->Height;
+                        dbc->material.diffuseMap.depth = 1;
+                        dbc->material.diffuseMap.index = 0;
                     }
 
                     // normal
@@ -361,10 +365,11 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = normal.ValueMap->GetName();
                         const auto& texture =
                             normal.ValueMap->GetTextureImage();
-                        uint32_t texture_id =
-                            upload_texture(texture_key, texture);
-                        dbc->material.normalMap =
-                            static_cast<int32_t>(texture_id);
+                        dbc->material.normalMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.normalMap.width = texture->Width;
+                        dbc->material.normalMap.height = texture->Height;
+                        dbc->material.normalMap.depth = 1;
+                        dbc->material.normalMap.index = 0;
                     }
 
                     // metallic
@@ -373,10 +378,11 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = metallic.ValueMap->GetName();
                         const auto& texture =
                             metallic.ValueMap->GetTextureImage();
-                        uint32_t texture_id =
-                            upload_texture(texture_key, texture);
-                        dbc->material.metallicMap =
-                            static_cast<int32_t>(texture_id);
+                        dbc->material.metallicMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.metallicMap.width = texture->Width;
+                        dbc->material.metallicMap.height = texture->Height;
+                        dbc->material.metallicMap.depth = 1;
+                        dbc->material.metallicMap.index = 0;
                     }
 
                     // roughness
@@ -385,10 +391,11 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = roughness.ValueMap->GetName();
                         const auto& texture =
                             roughness.ValueMap->GetTextureImage();
-                        uint32_t texture_id =
-                            upload_texture(texture_key, texture);
-                        dbc->material.roughnessMap =
-                            static_cast<int32_t>(texture_id);
+                        dbc->material.roughnessMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.roughnessMap.width = texture->Width;
+                        dbc->material.roughnessMap.height = texture->Height;
+                        dbc->material.roughnessMap.depth = 1;
+                        dbc->material.roughnessMap.index = 0;
                     }
 
                     // ao
@@ -396,9 +403,11 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                     if (ao.ValueMap) {
                         const auto& texture_key = ao.ValueMap->GetName();
                         const auto& texture = ao.ValueMap->GetTextureImage();
-                        uint32_t texture_id =
-                            upload_texture(texture_key, texture);
-                        dbc->material.aoMap = static_cast<int32_t>(texture_id);
+                        dbc->material.aoMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.aoMap.width = texture->Width;
+                        dbc->material.aoMap.height = texture->Height;
+                        dbc->material.aoMap.depth = 1;
+                        dbc->material.aoMap.index = 0;
                     }
 
                     // height map
@@ -407,10 +416,11 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = heightmap.ValueMap->GetName();
                         const auto& texture =
                             heightmap.ValueMap->GetTextureImage();
-                        uint32_t texture_id =
-                            upload_texture(texture_key, texture);
-                        dbc->material.heightMap =
-                            static_cast<int32_t>(texture_id);
+                        dbc->material.aoMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.aoMap.width = texture->Width;
+                        dbc->material.aoMap.height = texture->Height;
+                        dbc->material.aoMap.depth = 1;
+                        dbc->material.aoMap.index = 0;
                     }
                 }
 
@@ -509,11 +519,7 @@ void OpenGLGraphicsManagerCommonBase::initializeSkyBox(const Scene& scene) {
         }
     }
 
-    m_Textures["SkyBox"] = texture_id;
-
-    for (int32_t i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
-        m_Frames[i].skybox = texture_id;
-    }
+    m_Textures["SkyBox"].texture = texture_id;
 
     glBindTexture(target, 0);
 
@@ -603,7 +609,7 @@ void OpenGLGraphicsManagerCommonBase::EndScene() {
     }
 
     for (auto& it : m_Textures) {
-        GLuint texture_id = static_cast<GLuint>(it.second);
+        GLuint texture_id = static_cast<GLuint>(it.second.texture);
         glDeleteTextures(1, &texture_id);
     }
 
@@ -770,8 +776,8 @@ void OpenGLGraphicsManagerCommonBase::SetPipelineState(
     auto texture_id = frame.brdfLUT;
     setShaderParameter("SPIRV_Cross_CombinedbrdfLUTsamp0", 6);
     glActiveTexture(GL_TEXTURE6);
-    if (texture_id > 0) {
-        glBindTexture(GL_TEXTURE_2D, texture_id);
+    if (texture_id.texture > 0) {
+        glBindTexture(GL_TEXTURE_2D, texture_id.texture);
     } else {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -786,8 +792,8 @@ void OpenGLGraphicsManagerCommonBase::SetPipelineState(
     target = GL_TEXTURE_CUBE_MAP_ARRAY;
 #endif
     texture_id = frame.skybox;
-    if (texture_id >= 0) {
-        glBindTexture(target, (GLuint)texture_id);
+    if (texture_id.texture >= 0) {
+        glBindTexture(target, (GLuint)texture_id.texture);
     }
 }
 
@@ -845,48 +851,48 @@ void OpenGLGraphicsManagerCommonBase::DrawBatch(const Frame& frame) {
         // Bind textures
         setShaderParameter("SPIRV_Cross_CombineddiffuseMapsamp0", 0);
         glActiveTexture(GL_TEXTURE0);
-        if (dbc.material.diffuseMap > 0) {
-            glBindTexture(GL_TEXTURE_2D, dbc.material.diffuseMap);
+        if (dbc.material.diffuseMap.texture > 0) {
+            glBindTexture(GL_TEXTURE_2D, dbc.material.diffuseMap.texture);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         setShaderParameter("SPIRV_Cross_CombinednormalMapsamp0", 1);
         glActiveTexture(GL_TEXTURE1);
-        if (dbc.material.normalMap > 0) {
-            glBindTexture(GL_TEXTURE_2D, dbc.material.normalMap);
+        if (dbc.material.normalMap.texture > 0) {
+            glBindTexture(GL_TEXTURE_2D, dbc.material.normalMap.texture);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         setShaderParameter("SPIRV_Cross_CombinedmetallicMapsamp0", 2);
         glActiveTexture(GL_TEXTURE2);
-        if (dbc.material.metallicMap > 0) {
-            glBindTexture(GL_TEXTURE_2D, dbc.material.metallicMap);
+        if (dbc.material.metallicMap.texture > 0) {
+            glBindTexture(GL_TEXTURE_2D, dbc.material.metallicMap.texture);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         setShaderParameter("SPIRV_Cross_CombinedroughnessMapsamp0", 3);
         glActiveTexture(GL_TEXTURE3);
-        if (dbc.material.roughnessMap > 0) {
-            glBindTexture(GL_TEXTURE_2D, dbc.material.roughnessMap);
+        if (dbc.material.roughnessMap.texture > 0) {
+            glBindTexture(GL_TEXTURE_2D, dbc.material.roughnessMap.texture);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         setShaderParameter("SPIRV_Cross_CombinedaoMapsamp0", 4);
         glActiveTexture(GL_TEXTURE4);
-        if (dbc.material.aoMap > 0) {
-            glBindTexture(GL_TEXTURE_2D, dbc.material.aoMap);
+        if (dbc.material.aoMap.texture > 0) {
+            glBindTexture(GL_TEXTURE_2D, dbc.material.aoMap.texture);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         setShaderParameter("SPIRV_Cross_CombinedheightMapsamp0", 5);
         glActiveTexture(GL_TEXTURE5);
-        if (dbc.material.heightMap > 0) {
-            glBindTexture(GL_TEXTURE_2D, dbc.material.heightMap);
+        if (dbc.material.heightMap.texture > 0) {
+            glBindTexture(GL_TEXTURE_2D, dbc.material.heightMap.texture);
         } else {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
@@ -899,10 +905,10 @@ void OpenGLGraphicsManagerCommonBase::DrawBatch(const Frame& frame) {
     glBindVertexArray(0);
 }
 
-intptr_t OpenGLGraphicsManagerCommonBase::GenerateCubeShadowMapArray(
+texture_id OpenGLGraphicsManagerCommonBase::GenerateCubeShadowMapArray(
     const uint32_t width, const uint32_t height, const uint32_t count) {
-    // Depth texture. Slower than a depth buffer, but you can sample it later in
-    // your shader
+    texture_id result;
+
     uint32_t shadowMap;
 
     glGenTextures(1, &shadowMap);
@@ -923,13 +929,20 @@ intptr_t OpenGLGraphicsManagerCommonBase::GenerateCubeShadowMapArray(
     glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
 
     // register the shadow map
-    return static_cast<int32_t>(shadowMap);
+    result.texture = static_cast<intptr_t>(shadowMap);
+    result.width = width;
+    result.height = height;
+    result.depth = count;
+    result.index = 0;
+
+    return result;
 }
 
-intptr_t OpenGLGraphicsManagerCommonBase::GenerateShadowMapArray(
+texture_id OpenGLGraphicsManagerCommonBase::GenerateShadowMapArray(
     const uint32_t width, const uint32_t height, const uint32_t count) {
-    // Depth texture. Slower than a depth buffer, but you can sample it later in
-    // your shader
+
+    texture_id result;
+
     uint32_t shadowMap;
 
     glGenTextures(1, &shadowMap);
@@ -944,12 +957,17 @@ intptr_t OpenGLGraphicsManagerCommonBase::GenerateShadowMapArray(
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     // register the shadow map
-    return static_cast<int32_t>(shadowMap);
+    result.texture = static_cast<intptr_t>(shadowMap);
+    result.width = width;
+    result.height = height;
+    result.depth = count;
+    result.index = 0;
+
+    return result;
 }
 
 void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
-    const int32_t light_index, const intptr_t shadowmap, const uint32_t width,
-    const uint32_t height, const int32_t layer_index, const Frame& frame) {
+    const int32_t light_index, const texture_id& shadowmap, const Frame& frame) {
     // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth
     // buffer.
     glGenFramebuffers(1, &m_ShadowMapFramebufferName);
@@ -959,15 +977,15 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
     if (frame.lightInfo.lights[light_index].lightType == LightType::Omni) {
 #if defined(OS_WEBASSEMBLY)
         glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                  (uint32_t)shadowmap, 0, layer_index);
+                                  (uint32_t)shadowmap.texture, 0, shadowmap.index);
 #else
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                             (uint32_t)shadowmap, 0);
+                             (uint32_t)shadowmap.texture, 0);
 #endif
     } else {
         // we only bind the single layer to FBO
         glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                  (uint32_t)shadowmap, 0, layer_index);
+                                  (uint32_t)shadowmap.texture, 0, shadowmap.index);
     }
 
     // Always check that our framebuffer is ok
@@ -976,13 +994,13 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
         assert(0);
     }
 
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, shadowmap.width, shadowmap.height);
 
     glDrawBuffers(0, nullptr);  // No color buffer is drawn to.
     // make sure omni light shadowmap arrays get cleared only
     // once, because glClear will clear all cubemaps in the array
     if (frame.lightInfo.lights[light_index].lightType != LightType::Omni ||
-        layer_index == 0) {
+        shadowmap.index == 0) {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
@@ -991,7 +1009,7 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
     ShadowMapConstants constants;
 
     constants.light_index = light_index;
-    constants.shadowmap_layer_index = static_cast<float>(layer_index);
+    constants.shadowmap_layer_index = static_cast<float>(shadowmap.index);
     constants.near_plane = nearClipDistance;
     constants.far_plane = farClipDistance;
 
@@ -1007,8 +1025,7 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void OpenGLGraphicsManagerCommonBase::EndShadowMap(const intptr_t shadowmap,
-                                                   int32_t layer_index) {
+void OpenGLGraphicsManagerCommonBase::EndShadowMap([[maybe_unused]] const texture_id& shadowmap) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glDeleteFramebuffers(1, &m_ShadowMapFramebufferName);
@@ -1027,8 +1044,8 @@ void OpenGLGraphicsManagerCommonBase::SetShadowMaps(const Frame& frame) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, color);
     auto texture_id = frame.frameContext.shadowMap;
-    if (texture_id >= 0) {
-        glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)texture_id);
+    if (texture_id.texture >= 0) {
+        glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)texture_id.texture);
     }
 
     setShaderParameter("SPIRV_Cross_CombinedglobalShadowMapsamp0", 8);
@@ -1039,8 +1056,8 @@ void OpenGLGraphicsManagerCommonBase::SetShadowMaps(const Frame& frame) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, color);
     texture_id = frame.frameContext.globalShadowMap;
-    if (texture_id >= 0) {
-        glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)texture_id);
+    if (texture_id.texture >= 0) {
+        glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)texture_id.texture);
     }
 
     setShaderParameter("SPIRV_Cross_CombinedcubeShadowMapsamp0", 9);
@@ -1054,14 +1071,19 @@ void OpenGLGraphicsManagerCommonBase::SetShadowMaps(const Frame& frame) {
     glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     texture_id = frame.frameContext.cubeShadowMap;
-    if (texture_id >= 0) {
-        glBindTexture(target, (GLuint)texture_id);
+    if (texture_id.texture >= 0) {
+        glBindTexture(target, (GLuint)texture_id.texture);
     }
 }
 
-void OpenGLGraphicsManagerCommonBase::ReleaseTexture(intptr_t texture) {
-    auto id = (uint32_t)texture;
+void OpenGLGraphicsManagerCommonBase::ReleaseTexture(texture_id& texture) {
+    auto id = (uint32_t)texture.texture;
     glDeleteTextures(1, &id);
+    texture.texture = -1;
+    texture.width = 0;
+    texture.height = 0;
+    texture.depth = 0;
+    texture.index = 0;
 }
 
 void OpenGLGraphicsManagerCommonBase::DrawSkyBox([[maybe_unused]] const Frame& frame) {
@@ -1088,7 +1110,10 @@ void OpenGLGraphicsManagerCommonBase::GenerateTexture(
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, width, height);
 
-    m_Textures[id] = texture;
+    m_Textures[id].texture = texture;
+    m_Textures[id].width = width;
+    m_Textures[id].height = height;
+    m_Textures[id].depth = 0;
 }
 
 void OpenGLGraphicsManagerCommonBase::BeginRenderToTexture(
@@ -1148,7 +1173,11 @@ void OpenGLGraphicsManagerCommonBase::GenerateTextureForWrite(
                  nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    m_Textures[id] = tex_output;
+    m_Textures[id].texture = tex_output;
+    m_Textures[id].width = width;
+    m_Textures[id].height = height;
+    m_Textures[id].depth = 1;
+    m_Textures[id].index = 0;
 }
 
 void OpenGLGraphicsManagerCommonBase::BindTextureForWrite(
@@ -1156,7 +1185,7 @@ void OpenGLGraphicsManagerCommonBase::BindTextureForWrite(
 #if !defined(OS_WEBASSEMBLY)
     // Bind it as Write-only Texture
     if (GLAD_GL_ARB_compute_shader) {
-        glBindImageTexture(0, m_Textures[id], 0, GL_FALSE, 0, GL_WRITE_ONLY,
+        glBindImageTexture(0, m_Textures[id].texture, 0, GL_FALSE, 0, GL_WRITE_ONLY,
                            GL_RG32F);
     }
 #endif
@@ -1493,601 +1522,6 @@ void OpenGLGraphicsManagerCommonBase::RenderDebugBuffers() {
         glBindVertexArray(dbc.vao);
         glDrawArrays(dbc.mode, 0x00, dbc.count);
     }
-}
-
-void OpenGLGraphicsManagerCommonBase::DrawTextureOverlay(
-    const intptr_t texture, const float vp_left, const float vp_top,
-    const float vp_width, const float vp_height) {
-    auto texture_id = (uint32_t)texture;
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-
-    GLfloat vertices[] = {vp_left,
-                          vp_top,
-                          0.0f,
-                          vp_left,
-                          vp_top - vp_height,
-                          0.0f,
-                          vp_left + vp_width,
-                          vp_top,
-                          0.0f,
-                          vp_left + vp_width,
-                          vp_top - vp_height,
-                          0.0f};
-
-    GLfloat uv[] = {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f};
-
-    uint32_t vao;
-    glGenVertexArrays(1, &vao);
-
-    // Bind the vertex array object to store all the buffers and vertex
-    // attributes we create here.
-    glBindVertexArray(vao);
-
-    uint32_t buffer_id[2];
-
-    // Generate an ID for the vertex buffer.
-    glGenBuffers(2, buffer_id);
-
-    // Bind the vertex buffer and load the vertex (position) data into the
-    // vertex buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, nullptr);
-
-    // Bind the vertex buffer and load the vertex (uv) data into the vertex
-    // buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uv), uv, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, nullptr);
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0x00, 4);
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(2, buffer_id);
-}
-
-void OpenGLGraphicsManagerCommonBase::DrawTextureArrayOverlay(
-    const intptr_t texture, const float layer_index, const float vp_left,
-    const float vp_top, const float vp_width, const float vp_height) {
-    auto texture_id = (uint32_t)texture;
-    DebugConstants constants;
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture_id);
-    constants.layer_index = layer_index;
-    constants.mip_level = 0;
-
-    if (!m_uboDebugConstant[m_nFrameIndex]) {
-        glGenBuffers(1, &m_uboDebugConstant[m_nFrameIndex]);
-
-        uint32_t blockIndex =
-            glGetUniformBlockIndex(m_CurrentShader, "DebugConstants");
-
-        assert(blockIndex != GL_INVALID_INDEX);
-
-        int32_t blockSize;
-
-        glGetActiveUniformBlockiv(m_CurrentShader, blockIndex,
-                                  GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
-        assert(blockSize == sizeof(DebugConstants));
-
-        glUniformBlockBinding(m_CurrentShader, blockIndex, 13);
-    }
-
-    glBindBuffer(GL_UNIFORM_BUFFER, m_uboDebugConstant[m_nFrameIndex]);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(constants), &constants,
-                 GL_DYNAMIC_DRAW);
-
-    glBindBufferBase(GL_UNIFORM_BUFFER, 13, m_uboDebugConstant[m_nFrameIndex]);
-
-    GLfloat vertices[] = {vp_left,
-                          vp_top,
-                          0.0f,
-                          vp_left,
-                          vp_top - vp_height,
-                          0.0f,
-                          vp_left + vp_width,
-                          vp_top,
-                          0.0f,
-                          vp_left + vp_width,
-                          vp_top - vp_height,
-                          0.0f};
-
-    GLfloat uv[] = {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f};
-
-    uint32_t vao;
-    glGenVertexArrays(1, &vao);
-
-    // Bind the vertex array object to store all the buffers and vertex
-    // attributes we create here.
-    glBindVertexArray(vao);
-
-    uint32_t buffer_id[2];
-
-    // Generate an ID for the vertex buffer.
-    glGenBuffers(2, buffer_id);
-
-    // Bind the vertex buffer and load the vertex (position) data into the
-    // vertex buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, nullptr);
-
-    // Bind the vertex buffer and load the vertex (uv) data into the vertex
-    // buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uv), uv, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, nullptr);
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0x00, 4);
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(2, buffer_id);
-}
-
-void OpenGLGraphicsManagerCommonBase::DrawCubeMapOverlay(
-    const intptr_t cubemap, const float vp_left, const float vp_top,
-    const float vp_width, const float vp_height, const float level) {
-    auto texture_id = (uint32_t)cubemap;
-    DebugConstants constants;
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
-
-    constants.mip_level = level;
-
-    if (!m_uboDebugConstant[m_nFrameIndex]) {
-        glGenBuffers(1, &m_uboDebugConstant[m_nFrameIndex]);
-
-        uint32_t blockIndex =
-            glGetUniformBlockIndex(m_CurrentShader, "DebugConstants");
-
-        assert(blockIndex != GL_INVALID_INDEX);
-
-        int32_t blockSize;
-
-        glGetActiveUniformBlockiv(m_CurrentShader, blockIndex,
-                                  GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
-        assert(blockSize >= sizeof(DebugConstants));
-
-        glUniformBlockBinding(m_CurrentShader, blockIndex, 13);
-    }
-
-    glBindBuffer(GL_UNIFORM_BUFFER, m_uboDebugConstant[m_nFrameIndex]);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 13, m_uboDebugConstant[m_nFrameIndex]);
-
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(constants), &constants,
-                 GL_DYNAMIC_DRAW);
-
-    const float cell_height = vp_height * 0.5f;
-    const float cell_width = vp_width * (1.0f / 3.0f);
-    GLfloat vertices[] = {
-        // face 1
-        vp_left,
-        vp_top,
-        0.0f,
-        vp_left,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top,
-        0.0f,
-
-        vp_left + cell_width,
-        vp_top,
-        0.0f,
-        vp_left,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-
-        // face 2
-        vp_left + cell_width,
-        vp_top,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top,
-        0.0f,
-
-        vp_left + cell_width * 2.0f,
-        vp_top,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        // face 3
-        vp_left + cell_width * 2.0f,
-        vp_top,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top,
-        0.0f,
-
-        vp_left + cell_width * 3.0f,
-        vp_top,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        // face 4
-        vp_left,
-        vp_top - cell_height,
-        0.0f,
-        vp_left,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-
-        // face 5
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-
-        // face 6
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-    };
-
-    const GLfloat uvw[] = {
-        // back
-        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-
-        // left
-        -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
-
-        // front
-        -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-
-        // right
-        1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
-
-        // top
-        -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-
-        // bottom
-        -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f};
-
-    uint32_t vao;
-    glGenVertexArrays(1, &vao);
-
-    // Bind the vertex array object to store all the buffers and vertex
-    // attributes we create here.
-    glBindVertexArray(vao);
-
-    uint32_t buffer_id[2];
-
-    // Generate an ID for the vertex buffer.
-    glGenBuffers(2, buffer_id);
-
-    // Bind the vertex buffer and load the vertex (position) data into the
-    // vertex buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, nullptr);
-
-    // Bind the vertex buffer and load the vertex (uvw) data into the vertex
-    // buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uvw), uvw, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, nullptr);
-
-    glDrawArrays(GL_TRIANGLES, 0x00, 36);
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(2, buffer_id);
-}
-
-void OpenGLGraphicsManagerCommonBase::DrawCubeMapArrayOverlay(
-    const intptr_t cubemap, const float layer_index, const float vp_left,
-    const float vp_top, const float vp_width, const float vp_height,
-    const float level) {
-    auto texture_id = (uint32_t)cubemap;
-    DebugConstants constants;
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, texture_id);
-    constants.layer_index = layer_index;
-    constants.mip_level = level;
-
-    if (!m_uboDebugConstant[m_nFrameIndex]) {
-        glGenBuffers(1, &m_uboDebugConstant[m_nFrameIndex]);
-
-        uint32_t blockIndex =
-            glGetUniformBlockIndex(m_CurrentShader, "DebugConstants");
-
-        assert(blockIndex != GL_INVALID_INDEX);
-
-        int32_t blockSize;
-
-        glGetActiveUniformBlockiv(m_CurrentShader, blockIndex,
-                                  GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
-        assert(blockSize == sizeof(DebugConstants));
-
-        glUniformBlockBinding(m_CurrentShader, blockIndex, 13);
-    }
-
-    glBindBuffer(GL_UNIFORM_BUFFER, m_uboDebugConstant[m_nFrameIndex]);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 13, m_uboDebugConstant[m_nFrameIndex]);
-
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(constants), &constants,
-                 GL_DYNAMIC_DRAW);
-
-    const float cell_height = vp_height * 0.5f;
-    const float cell_width = vp_width * (1.0f / 3.0f);
-    GLfloat vertices[] = {
-        // face 1
-        vp_left,
-        vp_top,
-        0.0f,
-        vp_left,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top,
-        0.0f,
-
-        vp_left + cell_width,
-        vp_top,
-        0.0f,
-        vp_left,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-
-        // face 2
-        vp_left + cell_width,
-        vp_top,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top,
-        0.0f,
-
-        vp_left + cell_width * 2.0f,
-        vp_top,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        // face 3
-        vp_left + cell_width * 2.0f,
-        vp_top,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top,
-        0.0f,
-
-        vp_left + cell_width * 3.0f,
-        vp_top,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        // face 4
-        vp_left,
-        vp_top - cell_height,
-        0.0f,
-        vp_left,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-
-        // face 5
-        vp_left + cell_width,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-
-        // face 6
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height,
-        0.0f,
-
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height,
-        0.0f,
-        vp_left + cell_width * 2.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-        vp_left + cell_width * 3.0f,
-        vp_top - cell_height * 2.0f,
-        0.0f,
-    };
-
-    const GLfloat uvw[] = {
-        // back
-        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-
-        // left
-        -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
-
-        // front
-        -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f,
-
-        // right
-        1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f,
-
-        // top
-        -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
-
-        // bottom
-        -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
-        -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f};
-
-    uint32_t vao;
-    glGenVertexArrays(1, &vao);
-
-    // Bind the vertex array object to store all the buffers and vertex
-    // attributes we create here.
-    glBindVertexArray(vao);
-
-    uint32_t buffer_id[2];
-
-    // Generate an ID for the vertex buffer.
-    glGenBuffers(2, buffer_id);
-
-    // Bind the vertex buffer and load the vertex (position) data into the
-    // vertex buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, nullptr);
-
-    // Bind the vertex buffer and load the vertex (uvw) data into the vertex
-    // buffer.
-    glBindBuffer(GL_ARRAY_BUFFER, buffer_id[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uvw), uvw, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, nullptr);
-
-    glDrawArrays(GL_TRIANGLES, 0x00, 36);
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(2, buffer_id);
 }
 
 #endif

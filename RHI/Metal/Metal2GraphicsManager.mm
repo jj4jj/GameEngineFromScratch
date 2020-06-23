@@ -118,37 +118,27 @@ void Metal2GraphicsManager::initializeGeometries(const Scene& scene) {
                 if (auto& texture = material->GetBaseColor().ValueMap) {
                     const Image& image = *texture->GetTextureImage();
                     assert(image.Width && image.Height);
-                    auto texture_id = [m_pRenderer createTexture:image];
-
-                    dbc->material.diffuseMap = texture_id;
+                    dbc->material.diffuseMap = [m_pRenderer createTexture:image];
                 }
 
                 if (auto& texture = material->GetNormal().ValueMap) {
                     const Image& image = *texture->GetTextureImage();
-                    auto texture_id = [m_pRenderer createTexture:image];
-
-                    dbc->material.normalMap = texture_id;
+                    dbc->material.normalMap = [m_pRenderer createTexture:image];
                 }
 
                 if (auto& texture = material->GetMetallic().ValueMap) {
                     const Image& image = *texture->GetTextureImage();
-                    auto texture_id = [m_pRenderer createTexture:image];
-
-                    dbc->material.metallicMap = texture_id;
+                    dbc->material.metallicMap = [m_pRenderer createTexture:image];
                 }
 
                 if (auto& texture = material->GetRoughness().ValueMap) {
                     const Image& image = *texture->GetTextureImage();
-                    auto texture_id = [m_pRenderer createTexture:image];
-
-                    dbc->material.roughnessMap = texture_id;
+                    dbc->material.roughnessMap = [m_pRenderer createTexture:image];
                 }
 
                 if (auto& texture = material->GetAO().ValueMap) {
                     const Image& image = *texture->GetTextureImage();
-                    auto texture_id = [m_pRenderer createTexture:image];
-
-                    dbc->material.aoMap = texture_id;
+                    dbc->material.aoMap = [m_pRenderer createTexture:image];
                 }
             }
 
@@ -217,36 +207,32 @@ void Metal2GraphicsManager::SetPipelineState(const std::shared_ptr<PipelineState
 
 void Metal2GraphicsManager::DrawBatch(const Frame& frame) { [m_pRenderer drawBatch:frame]; }
 
-intptr_t Metal2GraphicsManager::GenerateCubeShadowMapArray(const uint32_t width,
+texture_id Metal2GraphicsManager::GenerateCubeShadowMapArray(const uint32_t width,
                                                           const uint32_t height,
                                                           const uint32_t count) {
     return [m_pRenderer generateCubeShadowMapArray:width height:height count:count];
 }
 
-intptr_t Metal2GraphicsManager::GenerateShadowMapArray(const uint32_t width, const uint32_t height,
+texture_id Metal2GraphicsManager::GenerateShadowMapArray(const uint32_t width, const uint32_t height,
                                                       const uint32_t count) {
     return [m_pRenderer generateShadowMapArray:width height:height count:count];
 }
 
-void Metal2GraphicsManager::BeginShadowMap(const int32_t light_index, const intptr_t shadowmap,
-                                           const uint32_t width, const uint32_t height,
-                                           const int32_t layer_index, const Frame& frame) {
+void Metal2GraphicsManager::BeginShadowMap(const int32_t light_index, const texture_id& shadowmap,
+                                           const Frame& frame) {
     [m_pRenderer beginShadowMap:light_index
                       shadowmap:shadowmap
-                          width:width
-                         height:height
-                    layer_index:layer_index
                           frame:frame];
 }
 
-void Metal2GraphicsManager::EndShadowMap(const intptr_t shadowmap, const int32_t layer_index) {
-    [m_pRenderer endShadowMap:shadowmap layer_index:layer_index];
+void Metal2GraphicsManager::EndShadowMap(const texture_id& shadowmap) {
+    [m_pRenderer endShadowMap:shadowmap];
 }
 
 void Metal2GraphicsManager::SetShadowMaps(const Frame& frame) { [m_pRenderer setShadowMaps:frame]; }
 
-void Metal2GraphicsManager::ReleaseTexture(intptr_t texture) {
-    [m_pRenderer releaseTexture:static_cast<int32_t>(texture)];
+void Metal2GraphicsManager::ReleaseTexture(texture_id& texture) {
+    [m_pRenderer releaseTexture:texture];
 }
 
 void Metal2GraphicsManager::DrawSkyBox(const Frame& frame) { [m_pRenderer drawSkyBox:frame]; }
@@ -264,51 +250,3 @@ void Metal2GraphicsManager::Dispatch(const uint32_t width, const uint32_t height
                                      const uint32_t depth) {
     [m_pRenderer dispatch:width height:height depth:depth];
 }
-
-#ifdef DEBUG
-void Metal2GraphicsManager::DrawTextureOverlay(const intptr_t texture, const float vp_left,
-                                               const float vp_top, const float vp_width,
-                                               const float vp_height) {
-    [m_pRenderer drawTextureOverlay:texture
-                            vp_left:vp_left
-                             vp_top:vp_top
-                           vp_width:vp_width
-                          vp_height:vp_height];
-}
-
-void Metal2GraphicsManager::DrawTextureArrayOverlay(const intptr_t texture, const float layer_index,
-                                                    const float vp_left, const float vp_top,
-                                                    const float vp_width, const float vp_height) {
-    [m_pRenderer drawTextureArrayOverlay:texture
-                             layer_index:layer_index
-                                 vp_left:vp_left
-                                  vp_top:vp_top
-                                vp_width:vp_width
-                               vp_height:vp_height];
-}
-
-void Metal2GraphicsManager::DrawCubeMapOverlay(const intptr_t texture, const float vp_left,
-                                               const float vp_top, const float vp_width,
-                                               const float vp_height, const float level) {
-    [m_pRenderer drawCubeMapOverlay:texture
-                            vp_left:vp_left
-                             vp_top:vp_top
-                           vp_width:vp_width
-                          vp_height:vp_height
-                              level:level];
-}
-
-void Metal2GraphicsManager::DrawCubeMapArrayOverlay(const intptr_t texture, const float layer_index,
-                                                    const float vp_left, const float vp_top,
-                                                    const float vp_width, const float vp_height,
-                                                    const float level) {
-    [m_pRenderer drawCubeMapArrayOverlay:texture
-                             layer_index:layer_index
-                                 vp_left:vp_left
-                                  vp_top:vp_top
-                                vp_width:vp_width
-                               vp_height:vp_height
-                                   level:level];
-}
-
-#endif

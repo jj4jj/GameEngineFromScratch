@@ -5,7 +5,7 @@
 
 using namespace My;
 
-static int32_t raytrace_texture = -1;
+static texture_id* raytrace_texture = nullptr;
 
 void RayTracePass::Dispatch(Frame& frame) {
     auto& pPipelineState =
@@ -18,7 +18,7 @@ void RayTracePass::Dispatch(Frame& frame) {
     const uint32_t width = 512u;
     const uint32_t height = 512u;
     const uint32_t depth = 1u;
-    if (raytrace_texture == -1) {
+    if (!raytrace_texture) {
         g_pGraphicsManager->GenerateTextureForWrite("RAYTRACE", width, height);
         raytrace_texture = g_pGraphicsManager->GetTexture("RAYTRACE");
     }

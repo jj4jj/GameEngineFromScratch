@@ -7,7 +7,7 @@ add_library(MetalRHI
     Metal2Renderer.mm
     Metal2GraphicsManager.mm
     MetalPipelineStateManager.mm
-    ${PROJECT_SOURCE_DIR}/External/src/imgui/examples/imgui_impl_metal.mm
+    imgui_impl_metal.mm
     )
 target_link_libraries(MetalRHI
         ${MTK_LIBRARY} 

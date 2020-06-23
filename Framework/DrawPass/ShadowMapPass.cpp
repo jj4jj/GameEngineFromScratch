@@ -18,8 +18,7 @@ void ShadowMapPass::Draw(Frame& frame) {
         auto& light = frame.lightInfo.lights[i];
 
         if (light.lightCastShadow) {
-            intptr_t shadowmap;
-            int32_t width, height;
+            texture_id shadowmap;
 
             const char* pipelineStateName;
 
@@ -31,8 +30,7 @@ void ShadowMapPass::Draw(Frame& frame) {
                     }
                     pipelineStateName = "Omni Light Shadow Map";
                     shadowmap = frame.frameContext.cubeShadowMap;
-                    width = GfxConfiguration::kCubeShadowMapWidth;
-                    height = GfxConfiguration::kCubeShadowMapHeight;
+                    shadowmap.index = cube_shadowmap_index;
                     light.lightShadowMapIndex = cube_shadowmap_index++;
                     break;
                 case LightType::Spot:
@@ -42,8 +40,7 @@ void ShadowMapPass::Draw(Frame& frame) {
                     }
                     pipelineStateName = "Spot Light Shadow Map";
                     shadowmap = frame.frameContext.shadowMap;
-                    width = GfxConfiguration::kShadowMapWidth;
-                    height = GfxConfiguration::kShadowMapHeight;
+                    shadowmap.index = shadowmap_index;
                     light.lightShadowMapIndex = shadowmap_index++;
                     break;
                 case LightType::Area:
@@ -53,8 +50,7 @@ void ShadowMapPass::Draw(Frame& frame) {
                     }
                     pipelineStateName = "Area Light Shadow Map";
                     shadowmap = frame.frameContext.shadowMap;
-                    width = GfxConfiguration::kShadowMapWidth;
-                    height = GfxConfiguration::kShadowMapHeight;
+                    shadowmap.index = shadowmap_index;
                     light.lightShadowMapIndex = shadowmap_index++;
                     break;
                 case LightType::Infinity:
@@ -64,8 +60,7 @@ void ShadowMapPass::Draw(Frame& frame) {
                     }
                     pipelineStateName = "Sun Light Shadow Map";
                     shadowmap = frame.frameContext.globalShadowMap;
-                    width = GfxConfiguration::kGlobalShadowMapWidth;
-                    height = GfxConfiguration::kGlobalShadowMapHeight;
+                    shadowmap.index = global_shadowmap_index;
                     light.lightShadowMapIndex = global_shadowmap_index++;
                     break;
                 default:
@@ -73,7 +68,7 @@ void ShadowMapPass::Draw(Frame& frame) {
             }
 
             g_pGraphicsManager->BeginShadowMap(
-                i, shadowmap, width, height, light.lightShadowMapIndex, frame);
+                i, shadowmap, frame);
 
             // Set the color shader as the current shader program and set the
             // matrices that it will use for rendering.
@@ -83,8 +78,7 @@ void ShadowMapPass::Draw(Frame& frame) {
 
             g_pGraphicsManager->DrawBatch(frame);
 
-            g_pGraphicsManager->EndShadowMap(shadowmap,
-                                             light.lightShadowMapIndex);
+            g_pGraphicsManager->EndShadowMap(shadowmap);
         }
     }
 

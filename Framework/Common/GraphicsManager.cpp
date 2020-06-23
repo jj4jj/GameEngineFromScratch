@@ -314,7 +314,7 @@ void GraphicsManager::BeginScene(const Scene& scene) {
         m_Frames[i].frameIndex = i;
 
         // generate shadow map array
-        if (m_Frames[i].frameContext.shadowMap == -1) {
+        if (m_Frames[i].frameContext.shadowMap.texture == -1) {
             m_Frames[i].frameContext.shadowMap =
                 g_pGraphicsManager->GenerateShadowMapArray(
                     GfxConfiguration::kShadowMapWidth,
@@ -323,7 +323,7 @@ void GraphicsManager::BeginScene(const Scene& scene) {
         }
 
         // generate global shadow map array
-        if (m_Frames[i].frameContext.globalShadowMap == -1) {
+        if (m_Frames[i].frameContext.globalShadowMap.texture == -1) {
             m_Frames[i].frameContext.globalShadowMap =
                 g_pGraphicsManager->GenerateShadowMapArray(
                     GfxConfiguration::kGlobalShadowMapWidth,
@@ -332,7 +332,7 @@ void GraphicsManager::BeginScene(const Scene& scene) {
         }
 
         // generate cube shadow map array
-        if (m_Frames[i].frameContext.cubeShadowMap == -1) {
+        if (m_Frames[i].frameContext.cubeShadowMap.texture == -1) {
             m_Frames[i].frameContext.cubeShadowMap =
                 g_pGraphicsManager->GenerateCubeShadowMapArray(
                     GfxConfiguration::kCubeShadowMapWidth,
@@ -364,12 +364,12 @@ void GraphicsManager::EndFrame(const Frame&) {
         ((m_nFrameIndex + 1) % GfxConfiguration::kMaxInFlightFrameCount);
 }
 
-intptr_t GraphicsManager::GetTexture(const char* id) {
-    intptr_t result = -1;
+texture_id* GraphicsManager::GetTexture(const char* id) {
+    texture_id* result;
 
     auto it = m_Textures.find(id);
     if (it != m_Textures.end()) {
-        result = it->second;
+        result = &it->second;
     }
 
     return result;

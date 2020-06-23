@@ -46,16 +46,18 @@ static void ShowTextureDebugOverlay(bool* p_open, Frame& frame) {
 
     if (ImGui::Begin("Resources", p_open, window_flags)) {
         if (ImGui::CollapsingHeader("Textures")) {
+            #if 0
             for (int32_t i = 0; i < frame.frameContext.globalShadowMapCount; i++) {
-                ImGui::Image(reinterpret_cast<ImTextureID>(frame.frameContext.globalShadowMap), ImVec2(100.0f, 100.0f));
+                ImGui::Image(&frame.frameContext.globalShadowMap, ImVec2(100.0f, 100.0f));
             }
 
             for (int32_t i = 0; i < frame.frameContext.shadowMapCount; i++) {
-                ImGui::Image(reinterpret_cast<ImTextureID>(frame.frameContext.shadowMap), ImVec2(100.0f, 100.0f));
+                ImGui::Image(&frame.frameContext.shadowMap, ImVec2(100.0f, 100.0f));
             }
+            #endif
 
             auto brdf_lut = g_pGraphicsManager->GetTexture("BRDF_LUT");
-            ImGui::Image(reinterpret_cast<ImTextureID>(brdf_lut), ImVec2(100.0f, 100.0f));
+            ImGui::Image(brdf_lut, ImVec2(100.0f, 100.0f));
         }
     }
 
