@@ -164,6 +164,8 @@ void Metal2GraphicsManager::initializeSkyBox(const Scene& scene) {
 
         auto tex_index = [m_pRenderer createSkyBox:images];
 
+        m_Textures.emplace("SKYBOX", tex_index);
+
         for (uint32_t i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
             m_Frames[i].skybox = tex_index;
         }
@@ -237,12 +239,12 @@ void Metal2GraphicsManager::ReleaseTexture(texture_id& texture) {
 
 void Metal2GraphicsManager::DrawSkyBox(const Frame& frame) { [m_pRenderer drawSkyBox:frame]; }
 
-void Metal2GraphicsManager::GenerateTextureForWrite(const char* id, const uint32_t width, const uint32_t height) {
+void Metal2GraphicsManager::GenerateTextureForWrite(const char* id, const uint32_t width,
+                                                    const uint32_t height) {
     m_Textures[id] = [m_pRenderer generateTextureForWrite:width height:height];
 }
 
-void Metal2GraphicsManager::BindTextureForWrite(const char* id,
-                                                              const uint32_t slot_index) {
+void Metal2GraphicsManager::BindTextureForWrite(const char* id, const uint32_t slot_index) {
     [m_pRenderer bindTextureForWrite:m_Textures[id] atIndex:slot_index];
 }
 

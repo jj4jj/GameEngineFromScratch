@@ -338,10 +338,12 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
 
                                 m_Textures[texture_key].texture = texture_id;
                                 m_Textures[texture_key].width = texture->Width;
-                                m_Textures[texture_key].height = texture->Height;
+                                m_Textures[texture_key].height =
+                                    texture->Height;
                                 m_Textures[texture_key].depth = 1;
                             } else {
-                                texture_id = static_cast<uint32_t>(it->second.texture);
+                                texture_id =
+                                    static_cast<uint32_t>(it->second.texture);
                             }
 
                             return texture_id;
@@ -352,7 +354,8 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                     if (color.ValueMap) {
                         const auto& texture_key = color.ValueMap->GetName();
                         const auto& texture = color.ValueMap->GetTextureImage();
-                        dbc->material.diffuseMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.diffuseMap.texture =
+                            upload_texture(texture_key, texture);
                         dbc->material.diffuseMap.width = texture->Width;
                         dbc->material.diffuseMap.height = texture->Height;
                         dbc->material.diffuseMap.depth = 1;
@@ -365,7 +368,8 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = normal.ValueMap->GetName();
                         const auto& texture =
                             normal.ValueMap->GetTextureImage();
-                        dbc->material.normalMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.normalMap.texture =
+                            upload_texture(texture_key, texture);
                         dbc->material.normalMap.width = texture->Width;
                         dbc->material.normalMap.height = texture->Height;
                         dbc->material.normalMap.depth = 1;
@@ -378,7 +382,8 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = metallic.ValueMap->GetName();
                         const auto& texture =
                             metallic.ValueMap->GetTextureImage();
-                        dbc->material.metallicMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.metallicMap.texture =
+                            upload_texture(texture_key, texture);
                         dbc->material.metallicMap.width = texture->Width;
                         dbc->material.metallicMap.height = texture->Height;
                         dbc->material.metallicMap.depth = 1;
@@ -391,7 +396,8 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = roughness.ValueMap->GetName();
                         const auto& texture =
                             roughness.ValueMap->GetTextureImage();
-                        dbc->material.roughnessMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.roughnessMap.texture =
+                            upload_texture(texture_key, texture);
                         dbc->material.roughnessMap.width = texture->Width;
                         dbc->material.roughnessMap.height = texture->Height;
                         dbc->material.roughnessMap.depth = 1;
@@ -403,7 +409,8 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                     if (ao.ValueMap) {
                         const auto& texture_key = ao.ValueMap->GetName();
                         const auto& texture = ao.ValueMap->GetTextureImage();
-                        dbc->material.aoMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.aoMap.texture =
+                            upload_texture(texture_key, texture);
                         dbc->material.aoMap.width = texture->Width;
                         dbc->material.aoMap.height = texture->Height;
                         dbc->material.aoMap.depth = 1;
@@ -416,7 +423,8 @@ void OpenGLGraphicsManagerCommonBase::initializeGeometries(const Scene& scene) {
                         const auto& texture_key = heightmap.ValueMap->GetName();
                         const auto& texture =
                             heightmap.ValueMap->GetTextureImage();
-                        dbc->material.aoMap.texture = upload_texture(texture_key, texture);
+                        dbc->material.aoMap.texture =
+                            upload_texture(texture_key, texture);
                         dbc->material.aoMap.width = texture->Width;
                         dbc->material.aoMap.height = texture->Height;
                         dbc->material.aoMap.depth = 1;
@@ -791,7 +799,7 @@ void OpenGLGraphicsManagerCommonBase::SetPipelineState(
 #else
     target = GL_TEXTURE_CUBE_MAP_ARRAY;
 #endif
-    texture_id = frame.skybox;
+    texture_id = m_Textures["SKYBOX"];
     if (texture_id.texture >= 0) {
         glBindTexture(target, (GLuint)texture_id.texture);
     }
@@ -940,7 +948,6 @@ texture_id OpenGLGraphicsManagerCommonBase::GenerateCubeShadowMapArray(
 
 texture_id OpenGLGraphicsManagerCommonBase::GenerateShadowMapArray(
     const uint32_t width, const uint32_t height, const uint32_t count) {
-
     texture_id result;
 
     uint32_t shadowMap;
@@ -967,7 +974,8 @@ texture_id OpenGLGraphicsManagerCommonBase::GenerateShadowMapArray(
 }
 
 void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
-    const int32_t light_index, const texture_id& shadowmap, const Frame& frame) {
+    const int32_t light_index, const texture_id& shadowmap,
+    const Frame& frame) {
     // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth
     // buffer.
     glGenFramebuffers(1, &m_ShadowMapFramebufferName);
@@ -977,7 +985,8 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
     if (frame.lightInfo.lights[light_index].lightType == LightType::Omni) {
 #if defined(OS_WEBASSEMBLY)
         glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                  (uint32_t)shadowmap.texture, 0, shadowmap.index);
+                                  (uint32_t)shadowmap.texture, 0,
+                                  shadowmap.index);
 #else
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                              (uint32_t)shadowmap.texture, 0);
@@ -985,7 +994,8 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
     } else {
         // we only bind the single layer to FBO
         glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                  (uint32_t)shadowmap.texture, 0, shadowmap.index);
+                                  (uint32_t)shadowmap.texture, 0,
+                                  shadowmap.index);
     }
 
     // Always check that our framebuffer is ok
@@ -1025,7 +1035,8 @@ void OpenGLGraphicsManagerCommonBase::BeginShadowMap(
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void OpenGLGraphicsManagerCommonBase::EndShadowMap([[maybe_unused]] const texture_id& shadowmap) {
+void OpenGLGraphicsManagerCommonBase::EndShadowMap([
+    [maybe_unused]] const texture_id& shadowmap) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glDeleteFramebuffers(1, &m_ShadowMapFramebufferName);
@@ -1086,7 +1097,8 @@ void OpenGLGraphicsManagerCommonBase::ReleaseTexture(texture_id& texture) {
     texture.index = 0;
 }
 
-void OpenGLGraphicsManagerCommonBase::DrawSkyBox([[maybe_unused]] const Frame& frame) {
+void OpenGLGraphicsManagerCommonBase::DrawSkyBox([
+    [maybe_unused]] const Frame& frame) {
     glBindVertexArray(m_SkyBoxDrawBatchContext.vao);
 
     glDrawElements(m_SkyBoxDrawBatchContext.mode,
@@ -1096,8 +1108,9 @@ void OpenGLGraphicsManagerCommonBase::DrawSkyBox([[maybe_unused]] const Frame& f
     glBindVertexArray(0);
 }
 
-void OpenGLGraphicsManagerCommonBase::GenerateTexture(
-    const char* id, const uint32_t width, const uint32_t height) {
+void OpenGLGraphicsManagerCommonBase::GenerateTexture(const char* id,
+                                                      const uint32_t width,
+                                                      const uint32_t height) {
     // Depth texture. Slower than a depth buffer, but you can sample it later in
     // your shader
     uint32_t texture;
@@ -1185,8 +1198,8 @@ void OpenGLGraphicsManagerCommonBase::BindTextureForWrite(
 #if !defined(OS_WEBASSEMBLY)
     // Bind it as Write-only Texture
     if (GLAD_GL_ARB_compute_shader) {
-        glBindImageTexture(0, m_Textures[id].texture, 0, GL_FALSE, 0, GL_WRITE_ONLY,
-                           GL_RG32F);
+        glBindImageTexture(0, m_Textures[id].texture, 0, GL_FALSE, 0,
+                           GL_WRITE_ONLY, GL_RG32F);
     }
 #endif
 }

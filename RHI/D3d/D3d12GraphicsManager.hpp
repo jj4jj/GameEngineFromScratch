@@ -20,7 +20,6 @@ class D3d12GraphicsManager : public GraphicsManager {
     int Initialize() final;
     void Finalize() final;
 
-    void Draw() final;
     void Present() final;
 
     void SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState,
@@ -88,7 +87,7 @@ class D3d12GraphicsManager : public GraphicsManager {
     HRESULT WaitForPreviousFrame(uint32_t frame_index);
     HRESULT CreatePSO(D3d12PipelineState& pipelineState);
     HRESULT CreateCommandList();
-    HRESULT MsaaResolve();
+    HRESULT MsaaResolve(const Frame& frame);
 
    private:
     ID3D12Device* m_pDev =
@@ -175,9 +174,9 @@ class D3d12GraphicsManager : public GraphicsManager {
 #endif
 
     // Synchronization objects
-    HANDLE m_hGraphicsFenceEvent;
     HANDLE m_hCopyFenceEvent;
     HANDLE m_hComputeFenceEvent;
+    HANDLE m_hGraphicsFenceEvent[GfxConfiguration::kMaxInFlightFrameCount];
     ID3D12Fence* m_pGraphicsFence[GfxConfiguration::kMaxInFlightFrameCount];
     uint64_t m_nGraphicsFenceValue[GfxConfiguration::kMaxInFlightFrameCount];
 };
