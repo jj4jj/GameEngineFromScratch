@@ -511,10 +511,6 @@ void OpenGLGraphicsManagerCommonBase::initializeSkyBox(const Scene& scene) {
 
     m_Textures["SkyBox"] = texture_id;
 
-    for (int32_t i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
-        m_Frames[i].skybox = texture_id;
-    }
-
     glBindTexture(target, 0);
 
     // skybox VAO
@@ -785,7 +781,7 @@ void OpenGLGraphicsManagerCommonBase::SetPipelineState(
 #else
     target = GL_TEXTURE_CUBE_MAP_ARRAY;
 #endif
-    texture_id = frame.skybox;
+    texture_id = m_Textures["SKYBOX"];
     if (texture_id >= 0) {
         glBindTexture(target, (GLuint)texture_id);
     }

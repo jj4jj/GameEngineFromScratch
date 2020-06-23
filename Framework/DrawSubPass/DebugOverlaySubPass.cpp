@@ -42,17 +42,18 @@ void DebugOverlaySubPass::Draw(Frame& frame) {
     }
 
     // Draw Skybox
-    g_pGraphicsManager->DrawCubeMapArrayOverlay(frame.skybox, 0.0f, left, top,
+    auto skybox = g_pGraphicsManager->GetTexture("SKYBOX");
+    g_pGraphicsManager->DrawCubeMapArrayOverlay(skybox, 0.0f, left, top,
                                                 0.12f, 0.12f, 0.0f);
     top -= 0.15f;
 
     // SkyBox Irradiance
-    g_pGraphicsManager->DrawCubeMapArrayOverlay(frame.skybox, 0.0f, left, top,
+    g_pGraphicsManager->DrawCubeMapArrayOverlay(skybox, 0.0f, left, top,
                                                 0.12f, 0.12f, 1.0f);
     top -= 0.15f;
 
     // SkyBox Radiance
-    g_pGraphicsManager->DrawCubeMapArrayOverlay(frame.skybox, 1.0f, left, top,
+    g_pGraphicsManager->DrawCubeMapArrayOverlay(skybox, 1.0f, left, top,
                                                 0.12f, 0.12f, 1.0f);
     top -= 0.15f;
 
@@ -65,7 +66,7 @@ void DebugOverlaySubPass::Draw(Frame& frame) {
     g_pGraphicsManager->DrawTextureOverlay(brdf_lut, left, top, 0.12f, 0.12f);
     top -= 0.15f;
 
-    auto raytrace = g_pGraphicsManager->GetTexture("RAYTRACE");
-    g_pGraphicsManager->DrawTextureOverlay(raytrace, left, top, 0.12f, 0.12f);
+    // auto raytrace = g_pGraphicsManager->GetTexture("RAYTRACE");
+    // g_pGraphicsManager->DrawTextureOverlay(raytrace, left, top, 0.12f, 0.12f);
 #endif
 }

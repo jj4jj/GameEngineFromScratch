@@ -1463,10 +1463,6 @@ void D3d12GraphicsManager::initializeSkyBox(const Scene& scene) {
 
     m_Buffers.push_back(pTextureUploadHeap);
 
-    for (int32_t i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
-        m_Frames[i].skybox = static_cast<int32_t>(m_Textures.size());
-    }
-
     m_Textures.emplace("SKYBOX", reinterpret_cast<intptr_t>(pTextureBuffer));
 }
 
@@ -1814,7 +1810,7 @@ intptr_t D3d12GraphicsManager::GenerateShadowMapArray(const uint32_t width,
 void D3d12GraphicsManager::BeginShadowMap(
     const int32_t light_index, const intptr_t shadowmap, const uint32_t width,
     const uint32_t height, const int32_t layer_index, const Frame& frame) {
-#if 0
+
     D3D12_VIEWPORT view_port = {
         0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height),
         0.0f, 1.0f};
@@ -1838,7 +1834,7 @@ void D3d12GraphicsManager::BeginShadowMap(
 
     m_pGraphicsCommandList[frame.frameIndex]->ClearDepthStencilView(
         dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-#endif
+#
 }
 
 void D3d12GraphicsManager::EndShadowMap(const intptr_t shadowmap,

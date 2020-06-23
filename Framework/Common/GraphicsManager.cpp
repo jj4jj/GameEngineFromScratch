@@ -19,7 +19,7 @@ int GraphicsManager::Initialize() {
 #if !defined(OS_WEBASSEMBLY)
     m_InitPasses.push_back(make_shared<BRDFIntegrator>());
 #endif
-    m_DispatchPasses.push_back(make_shared<RayTracePass>());
+    //m_DispatchPasses.push_back(make_shared<RayTracePass>());
     //m_DrawPasses.push_back(make_shared<ShadowMapPass>());
     m_DrawPasses.push_back(make_shared<ForwardGeometryPass>());
 
@@ -365,7 +365,7 @@ void GraphicsManager::EndFrame(const Frame&) {
 }
 
 intptr_t GraphicsManager::GetTexture(const char* id) {
-    int32_t result = -1;
+    intptr_t result = -1;
 
     auto it = m_Textures.find(id);
     if (it != m_Textures.end()) {

@@ -15,7 +15,7 @@ struct DrawBatchContext : PerBatchConstants {
     virtual ~DrawBatchContext() = default;
 };
 
-struct Frame : global_textures {
+struct Frame {
     int32_t frameIndex{0};
     DrawFrameContext frameContext;
     std::vector<std::shared_ptr<DrawBatchContext>> batchContexts;
