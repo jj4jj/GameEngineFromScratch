@@ -174,9 +174,7 @@ void Metal2GraphicsManager::initializeSkyBox(const Scene& scene) {
 
         auto tex_index = [m_pRenderer createSkyBox:images];
 
-        for (uint32_t i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
-            m_Frames[i].skybox = tex_index;
-        }
+        m_Textures.emplace("SKYBOX", tex_index);
     }
 }
 
@@ -218,13 +216,13 @@ void Metal2GraphicsManager::SetPipelineState(const std::shared_ptr<PipelineState
 void Metal2GraphicsManager::DrawBatch(const Frame& frame) { [m_pRenderer drawBatch:frame]; }
 
 intptr_t Metal2GraphicsManager::GenerateCubeShadowMapArray(const uint32_t width,
-                                                          const uint32_t height,
-                                                          const uint32_t count) {
+                                                           const uint32_t height,
+                                                           const uint32_t count) {
     return [m_pRenderer generateCubeShadowMapArray:width height:height count:count];
 }
 
 intptr_t Metal2GraphicsManager::GenerateShadowMapArray(const uint32_t width, const uint32_t height,
-                                                      const uint32_t count) {
+                                                       const uint32_t count) {
     return [m_pRenderer generateShadowMapArray:width height:height count:count];
 }
 
@@ -251,12 +249,12 @@ void Metal2GraphicsManager::ReleaseTexture(intptr_t texture) {
 
 void Metal2GraphicsManager::DrawSkyBox(const Frame& frame) { [m_pRenderer drawSkyBox:frame]; }
 
-void Metal2GraphicsManager::GenerateTextureForWrite(const char* id, const uint32_t width, const uint32_t height) {
+void Metal2GraphicsManager::GenerateTextureForWrite(const char* id, const uint32_t width,
+                                                    const uint32_t height) {
     m_Textures[id] = [m_pRenderer generateTextureForWrite:width height:height];
 }
 
-void Metal2GraphicsManager::BindTextureForWrite(const char* id,
-                                                              const uint32_t slot_index) {
+void Metal2GraphicsManager::BindTextureForWrite(const char* id, const uint32_t slot_index) {
     [m_pRenderer bindTextureForWrite:m_Textures[id] atIndex:slot_index];
 }
 

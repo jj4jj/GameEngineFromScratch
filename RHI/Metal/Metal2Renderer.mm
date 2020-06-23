@@ -405,13 +405,15 @@ static MTLPixelFormat getMtlPixelFormat(const Image& img) {
 
             [_renderEncoder setFragmentSamplerState:_sampler0 atIndex:0];
 
-            if (frame.skybox >= 0) {
-                id<MTLTexture> texture = reinterpret_cast<id<MTLTexture>>(frame.skybox);
+            auto skybox = g_pGraphicsManager->GetTexture("SKYBOX");
+            if (skybox >= 0) {
+                id<MTLTexture> texture = reinterpret_cast<id<MTLTexture>>(skybox);
                 [_renderEncoder setFragmentTexture:texture atIndex:10];
             }
 
-            if (frame.brdfLUT >= 0) {
-                id<MTLTexture> texture = reinterpret_cast<id<MTLTexture>>(frame.brdfLUT);
+            auto brdfLUT = g_pGraphicsManager->GetTexture("BRDF_LUT");
+            if (brdfLUT >= 0) {
+                id<MTLTexture> texture = reinterpret_cast<id<MTLTexture>>(brdfLUT);
                 [_renderEncoder setFragmentTexture:texture atIndex:6];
             }
         } break;
