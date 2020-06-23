@@ -767,7 +767,7 @@ void OpenGLGraphicsManagerCommonBase::SetPipelineState(
 
     // Set common textures
     // Bind LUT table
-    auto texture_id = frame.brdfLUT;
+    auto texture_id = m_Textures["BRDF_LUT"];
     setShaderParameter("SPIRV_Cross_CombinedbrdfLUTsamp0", 6);
     glActiveTexture(GL_TEXTURE6);
     if (texture_id > 0) {

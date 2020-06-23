@@ -16,10 +16,7 @@ void BRDFIntegrator::Dispatch(Frame& frame) {
     const uint32_t width = 512u;
     const uint32_t height = 512u;
     const uint32_t depth = 1u;
-    if (frame.brdfLUT == -1) {
-        g_pGraphicsManager->GenerateTextureForWrite("BRDF_LUT", width, height);
-        frame.brdfLUT = g_pGraphicsManager->GetTexture("BRDF_LUT");
-    }
+    g_pGraphicsManager->GenerateTextureForWrite("BRDF_LUT", width, height);
     g_pGraphicsManager->BindTextureForWrite("BRDF_LUT", 0);
     g_pGraphicsManager->Dispatch(width, height, depth);
 }

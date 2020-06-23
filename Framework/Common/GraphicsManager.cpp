@@ -341,11 +341,11 @@ void GraphicsManager::BeginScene(const Scene& scene) {
         }
     }
 
-    if (scene.Geometries.size()) {
-        initializeGeometries(scene);
-    }
     if (scene.SkyBox) {
         initializeSkyBox(scene);
+    }
+    if (scene.Geometries.size()) {
+        initializeGeometries(scene);
     }
 }
 

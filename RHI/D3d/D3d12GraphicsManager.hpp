@@ -20,7 +20,6 @@ class D3d12GraphicsManager : public GraphicsManager {
     int Initialize() final;
     void Finalize() final;
 
-    void Draw() final;
     void Present() final;
 
     void SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState,

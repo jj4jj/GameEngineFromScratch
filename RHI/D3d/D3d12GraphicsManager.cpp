@@ -1282,6 +1282,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
             // SRV
             if (material) {
+                // t0
                 if (auto& texture = material->GetBaseColor().ValueMap) {
                     CreateTexture(*texture);
 
@@ -1293,6 +1294,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                 srvCpuHandle.ptr += m_nCbvSrvUavDescriptorSize;
 
+                // t1
                 if (auto& texture = material->GetNormal().ValueMap) {
                     CreateTexture(*texture);
 
@@ -1304,6 +1306,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                 srvCpuHandle.ptr += m_nCbvSrvUavDescriptorSize;
 
+                // t2
                 if (auto& texture = material->GetMetallic().ValueMap) {
                     CreateTexture(*texture);
 
@@ -1315,6 +1318,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                 srvCpuHandle.ptr += m_nCbvSrvUavDescriptorSize;
 
+                // t3
                 if (auto& texture = material->GetRoughness().ValueMap) {
                     CreateTexture(*texture);
 
@@ -1326,6 +1330,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                 srvCpuHandle.ptr += m_nCbvSrvUavDescriptorSize;
 
+                // t4
                 if (auto& texture = material->GetAO().ValueMap) {
                     CreateTexture(*texture);
 
@@ -1334,7 +1339,23 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
                             m_Textures[texture->GetName()]),
                         NULL, srvCpuHandle);
                 }
+
+                srvCpuHandle.ptr += m_nCbvSrvUavDescriptorSize;
+            } else {
+                srvCpuHandle.ptr += 5 * m_nCbvSrvUavDescriptorSize;
             }
+
+            srvCpuHandle.ptr += m_nCbvSrvUavDescriptorSize;
+            // Bind global textures (t6, t10)
+            // D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+            m_pDev->CreateShaderResourceView(
+                reinterpret_cast<ID3D12Resource*>(m_Textures["BRDF_LUT"]), NULL,
+                srvCpuHandle);
+
+            srvCpuHandle.ptr += 4 * m_nCbvSrvUavDescriptorSize;
+            m_pDev->CreateShaderResourceView(
+                reinterpret_cast<ID3D12Resource*>(m_Textures["SKYBOX"]), NULL,
+                srvCpuHandle);
 
             // UAV
             // ; temporary nothing here
@@ -1509,7 +1530,7 @@ void D3d12GraphicsManager::BeginFrame(const Frame& frame) {
         // however, when ExecuteCommandList() is called on a particular
         // command list, that command list can then be reset at any time and
         // must be before re-recording.
-       m_pGraphicsCommandList[frame.frameIndex]->Reset(
+        m_pGraphicsCommandList[frame.frameIndex]->Reset(
             m_pGraphicsCommandAllocator[frame.frameIndex], NULL);
     } else {
         assert(0);
@@ -1591,8 +1612,6 @@ void D3d12GraphicsManager::BeginPass(const Frame& frame) {
         dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
-void D3d12GraphicsManager::Draw() { GraphicsManager::Draw(); }
-
 void D3d12GraphicsManager::DrawBatch(const Frame& frame) {
     for (const auto& pDbc : frame.batchContexts) {
         const D3dDrawBatchContext& dbc =
@@ -1626,19 +1645,6 @@ void D3d12GraphicsManager::DrawBatch(const Frame& frame) {
         cbvHandle = m_pCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
         cbvHandle.ptr += dbc.cbv_srv_uav_offset;
         m_pDev->CreateConstantBufferView(&cbvDesc, cbvHandle);
-
-        cbvHandle.ptr += 2 * m_nCbvSrvUavDescriptorSize;
-        // Bind global textures (t6, t10)
-        // D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
-        cbvHandle.ptr += 6 * m_nCbvSrvUavDescriptorSize;
-        m_pDev->CreateShaderResourceView(
-            reinterpret_cast<ID3D12Resource*>(m_Textures["BRDF_LUT"]), NULL,
-            cbvHandle);
-
-        cbvHandle.ptr += 4 * m_nCbvSrvUavDescriptorSize;
-        m_pDev->CreateShaderResourceView(
-            reinterpret_cast<ID3D12Resource*>(m_Textures["SKYBOX"]), NULL,
-            cbvHandle);
 
         // Bind per batch Descriptor Table
         D3D12_GPU_DESCRIPTOR_HANDLE cbvSrvUavGpuHandle =
