@@ -100,7 +100,9 @@ void D3d12GraphicsManager::Finalize() {
 
     CloseHandle(m_hComputeFenceEvent);
     CloseHandle(m_hCopyFenceEvent);
-    CloseHandle(m_hGraphicsFenceEvent);
+    for (int i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
+        CloseHandle(m_hGraphicsFenceEvent[i]);
+    }
 }
 
 HRESULT D3d12GraphicsManager::WaitForPreviousFrame(uint32_t frame_index) {
@@ -110,24 +112,11 @@ HRESULT D3d12GraphicsManager::WaitForPreviousFrame(uint32_t frame_index) {
 
     if (m_pGraphicsFence[frame_index]->GetCompletedValue() < fence) {
         if (FAILED(hr = m_pGraphicsFence[frame_index]->SetEventOnCompletion(
-                       fence, m_hGraphicsFenceEvent))) {
+                       fence, m_hGraphicsFenceEvent[frame_index]))) {
             assert(0);
             return hr;
         }
-        WaitForSingleObject(m_hGraphicsFenceEvent, INFINITE);
-
-        // command list allocators can only be reset when the associated
-        // command lists have finished execution on the GPU; apps should use
-        // fences to determine GPU execution progress.
-        if (SUCCEEDED(hr = m_pGraphicsCommandAllocator[frame_index]->Reset())) {
-            // however, when ExecuteCommandList() is called on a particular
-            // command list, that command list can then be reset at any time and
-            // must be before re-recording.
-            hr = m_pGraphicsCommandList[frame_index]->Reset(
-                m_pGraphicsCommandAllocator[frame_index], NULL);
-        } else {
-            assert(0);
-        }
+        WaitForSingleObject(m_hGraphicsFenceEvent[frame_index], INFINITE);
     }
 
     return hr;
@@ -870,15 +859,15 @@ HRESULT D3d12GraphicsManager::CreateGraphicsResources() {
                                          IID_PPV_ARGS(&m_pGraphicsFence[i])))) {
             return hr;
         }
+
+        m_hGraphicsFenceEvent[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (m_hGraphicsFenceEvent[i] == NULL) {
+            hr = HRESULT_FROM_WIN32(GetLastError());
+            if (FAILED(hr)) return hr;
+        }
     }
 
     memset(m_nGraphicsFenceValue, 0, sizeof(m_nGraphicsFenceValue));
-
-    m_hGraphicsFenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (m_hGraphicsFenceEvent == NULL) {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        if (FAILED(hr)) return hr;
-    }
 
     m_hComputeFenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
     if (m_hComputeFenceEvent == NULL) {
@@ -1194,6 +1183,7 @@ HRESULT D3d12GraphicsManager::CreateCommandList() {
         if (SUCCEEDED(hr)) {
             m_pGraphicsCommandList[i]->SetName(
                 (wstring(L"Graphics Command List") + to_wstring(i)).c_str());
+            m_pGraphicsCommandList[i]->Close();
         }
     }
 
@@ -1478,11 +1468,10 @@ void D3d12GraphicsManager::BeginScene(const Scene& scene) {
         assert(0);
     }
 
-    if (FAILED(
-            pCopyQueueFence->SetEventOnCompletion(1, m_hGraphicsFenceEvent))) {
+    if (FAILED(pCopyQueueFence->SetEventOnCompletion(1, m_hCopyFenceEvent))) {
         assert(0);
     }
-    WaitForSingleObject(m_hGraphicsFenceEvent, INFINITE);
+    WaitForSingleObject(m_hCopyFenceEvent, INFINITE);
 
     SafeRelease(&pCopyQueueFence);
 
@@ -1507,30 +1496,44 @@ void D3d12GraphicsManager::EndScene() {
 
 void D3d12GraphicsManager::BeginFrame(const Frame& frame) {
     GraphicsManager::BeginFrame(frame);
-    ImGui_ImplDX12_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-
-    SetPerFrameConstants(frame);
-    SetLightInfo(frame);
 
     assert(frame.frameIndex == m_nFrameIndex);
     if (FAILED(WaitForPreviousFrame(frame.frameIndex))) {
         assert(0);
     }
+
+    // command list allocators can only be reset when the associated
+    // command lists have finished execution on the GPU; apps should use
+    // fences to determine GPU execution progress.
+    if (SUCCEEDED(m_pGraphicsCommandAllocator[frame.frameIndex]->Reset())) {
+        // however, when ExecuteCommandList() is called on a particular
+        // command list, that command list can then be reset at any time and
+        // must be before re-recording.
+       m_pGraphicsCommandList[frame.frameIndex]->Reset(
+            m_pGraphicsCommandAllocator[frame.frameIndex], NULL);
+    } else {
+        assert(0);
+    }
+
+    SetPerFrameConstants(frame);
+    SetLightInfo(frame);
+
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplWin32_NewFrame();
 }
 
 void D3d12GraphicsManager::EndFrame(const Frame& frame) {
     HRESULT hr;
 
-    MsaaResolve();
+    MsaaResolve(frame);
 
     // now draw GUI overlay
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
     // bind the final RTV
     rtvHandle =
         m_pRtvHeap[frame.frameIndex]->GetCPUDescriptorHandleForHeapStart();
-    m_pGraphicsCommandList[m_nFrameIndex]->OMSetRenderTargets(1, &rtvHandle,
-                                                              FALSE, nullptr);
+    m_pGraphicsCommandList[frame.frameIndex]->OMSetRenderTargets(
+        1, &rtvHandle, FALSE, nullptr);
 
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(),
                                   m_pGraphicsCommandList[frame.frameIndex]);
@@ -1539,22 +1542,20 @@ void D3d12GraphicsManager::EndFrame(const Frame& frame) {
 
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_pRenderTargets[2 * m_nFrameIndex];
+    barrier.Transition.pResource = m_pRenderTargets[2 * frame.frameIndex];
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-    m_pGraphicsCommandList[m_nFrameIndex]->ResourceBarrier(1, &barrier);
+    m_pGraphicsCommandList[frame.frameIndex]->ResourceBarrier(1, &barrier);
 
     if (SUCCEEDED(hr = m_pGraphicsCommandList[frame.frameIndex]->Close())) {
-        m_nGraphicsFenceValue[frame.frameIndex]++;
-
         ID3D12CommandList* ppCommandLists[] = {
             m_pGraphicsCommandList[frame.frameIndex]};
         m_pGraphicsCommandQueue->ExecuteCommandLists(_countof(ppCommandLists),
                                                      ppCommandLists);
 
-        const uint64_t fence = m_nGraphicsFenceValue[frame.frameIndex];
+        const uint64_t fence = ++m_nGraphicsFenceValue[frame.frameIndex];
         if (FAILED(hr = m_pGraphicsCommandQueue->Signal(
                        m_pGraphicsFence[frame.frameIndex], fence))) {
             assert(0);
@@ -1563,8 +1564,9 @@ void D3d12GraphicsManager::EndFrame(const Frame& frame) {
 }
 
 void D3d12GraphicsManager::BeginPass(const Frame& frame) {
-    m_pGraphicsCommandList[m_nFrameIndex]->RSSetViewports(1, &m_ViewPort);
-    m_pGraphicsCommandList[m_nFrameIndex]->RSSetScissorRects(1, &m_ScissorRect);
+    m_pGraphicsCommandList[frame.frameIndex]->RSSetViewports(1, &m_ViewPort);
+    m_pGraphicsCommandList[frame.frameIndex]->RSSetScissorRects(1,
+                                                                &m_ScissorRect);
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
@@ -1574,7 +1576,7 @@ void D3d12GraphicsManager::BeginPass(const Frame& frame) {
         m_nRtvDescriptorSize;
     dsvHandle =
         m_pDsvHeap[frame.frameIndex]->GetCPUDescriptorHandleForHeapStart();
-    m_pGraphicsCommandList[m_nFrameIndex]->OMSetRenderTargets(
+    m_pGraphicsCommandList[frame.frameIndex]->OMSetRenderTargets(
         1, &rtvHandle, FALSE, &dsvHandle);
 
     ID3D12DescriptorHeap* ppHeaps[] = {m_pCbvSrvUavHeap, m_pSamplerHeap};
@@ -1583,9 +1585,9 @@ void D3d12GraphicsManager::BeginPass(const Frame& frame) {
 
     // clear the back buffer to a deep blue
     const FLOAT clearColor[] = {0.2f, 0.3f, 0.4f, 1.0f};
-    m_pGraphicsCommandList[m_nFrameIndex]->ClearRenderTargetView(
+    m_pGraphicsCommandList[frame.frameIndex]->ClearRenderTargetView(
         rtvHandle, clearColor, 0, nullptr);
-    m_pGraphicsCommandList[m_nFrameIndex]->ClearDepthStencilView(
+    m_pGraphicsCommandList[frame.frameIndex]->ClearDepthStencilView(
         dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
@@ -1704,44 +1706,46 @@ void D3d12GraphicsManager::SetLightInfo(const Frame& frame) {
            sizeof(LightInfo));
 }
 
-HRESULT D3d12GraphicsManager::MsaaResolve() {
+HRESULT D3d12GraphicsManager::MsaaResolve(const Frame& frame) {
     D3D12_RESOURCE_BARRIER barrier[2];
 
     barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier[0].Transition.pResource = m_pRenderTargets[2 * m_nFrameIndex + 1];
+    barrier[0].Transition.pResource =
+        m_pRenderTargets[2 * frame.frameIndex + 1];
     barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
     barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
     barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier[1].Transition.pResource = m_pRenderTargets[2 * m_nFrameIndex];
+    barrier[1].Transition.pResource = m_pRenderTargets[2 * frame.frameIndex];
     barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
     barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
     barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    m_pGraphicsCommandList[m_nFrameIndex]->ResourceBarrier(2, barrier);
+    m_pGraphicsCommandList[frame.frameIndex]->ResourceBarrier(2, barrier);
 
-    m_pGraphicsCommandList[m_nFrameIndex]->ResolveSubresource(
-        m_pRenderTargets[2 * m_nFrameIndex], 0,
-        m_pRenderTargets[2 * m_nFrameIndex + 1], 0,
+    m_pGraphicsCommandList[frame.frameIndex]->ResolveSubresource(
+        m_pRenderTargets[2 * frame.frameIndex], 0,
+        m_pRenderTargets[2 * frame.frameIndex + 1], 0,
         ::DXGI_FORMAT_R8G8B8A8_UNORM);
 
     // Indicate that the back buffer will be used as a resolve source.
     barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier[0].Transition.pResource = m_pRenderTargets[2 * m_nFrameIndex + 1];
+    barrier[0].Transition.pResource =
+        m_pRenderTargets[2 * frame.frameIndex + 1];
     barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
     barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
     barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier[1].Transition.pResource = m_pRenderTargets[2 * m_nFrameIndex];
+    barrier[1].Transition.pResource = m_pRenderTargets[2 * frame.frameIndex];
     barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_RESOLVE_DEST;
     barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
     barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    m_pGraphicsCommandList[m_nFrameIndex]->ResourceBarrier(2, barrier);
+    m_pGraphicsCommandList[frame.frameIndex]->ResourceBarrier(2, barrier);
 
     return S_OK;
 }
@@ -1782,7 +1786,7 @@ void D3d12GraphicsManager::DrawSkyBox(const Frame& frame) {
         3, cbvSrvUavGpuHandle);
 
     // draw the vertex buffer to the back buffer
-    m_pGraphicsCommandList[m_nFrameIndex]->DrawIndexedInstanced(
+    m_pGraphicsCommandList[frame.frameIndex]->DrawIndexedInstanced(
         m_dbcSkyBox.index_count, 1, 0, 0, 0);
 }
 
@@ -1811,22 +1815,22 @@ void D3d12GraphicsManager::BeginShadowMap(
     D3D12_RECT scissor_rect = {0, 0, static_cast<LONG>(width),
                                static_cast<LONG>(height)};
 
-    m_pGraphicsCommandList[m_nFrameIndex]->RSSetViewports(1, &view_port);
-    m_pGraphicsCommandList[m_nFrameIndex]->RSSetScissorRects(1, &scissor_rect);
+    m_pGraphicsCommandList[frame.frameIndex]->RSSetViewports(1, &view_port);
+    m_pGraphicsCommandList[frame.frameIndex]->RSSetScissorRects(1, &scissor_rect);
 
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
     // bind shadow map DSV
     dsvHandle =
         m_pDsvHeap[frame.frameIndex]->GetCPUDescriptorHandleForHeapStart();
     dsvHandle.ptr += light_index * m_nCbvSrvUavDescriptorSize;
-    m_pGraphicsCommandList[m_nFrameIndex]->OMSetRenderTargets(0, nullptr, FALSE,
+    m_pGraphicsCommandList[frame.frameIndex]->OMSetRenderTargets(0, nullptr, FALSE,
                                                               &dsvHandle);
 
     ID3D12DescriptorHeap* ppHeaps[] = {m_pCbvSrvUavHeap, m_pSamplerHeap};
     m_pGraphicsCommandList[frame.frameIndex]->SetDescriptorHeaps(
         static_cast<int32_t>(_countof(ppHeaps)), ppHeaps);
 
-    m_pGraphicsCommandList[m_nFrameIndex]->ClearDepthStencilView(
+    m_pGraphicsCommandList[frame.frameIndex]->ClearDepthStencilView(
         dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 #endif
 }
