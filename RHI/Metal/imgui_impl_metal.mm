@@ -120,7 +120,7 @@ bool ImGui_ImplMetal_CreateFontsTexture(id<MTLDevice> device) {
 
     ImGuiIO &io = ImGui::GetIO();
     static texture_id font_texture_id;
-    font_texture_id.texture = (__bridge intptr_t) g_sharedMetalContext.fontTexture;
+    font_texture_id.texture = (__bridge intptr_t)g_sharedMetalContext.fontTexture;
     io.Fonts->TexID = &font_texture_id;
 
     return (g_sharedMetalContext.fontTexture != nil);
@@ -317,6 +317,11 @@ void ImGui_ImplMetal_DestroyDeviceObjects() {
          "    float4x4 projectionMatrix;\n"
          "};\n"
          "\n"
+         "struct DebugUniforms {\n"
+         "    float    texLayerIndex;\n"
+         "    float    texMipMapIndex;\n"
+         "};\n"
+         "\n"
          "struct VertexIn {\n"
          "    float2 position  [[attribute(0)]];\n"
          "    float2 texCoords [[attribute(1)]];\n"
@@ -339,10 +344,12 @@ void ImGui_ImplMetal_DestroyDeviceObjects() {
          "}\n"
          "\n"
          "fragment half4 fragment_main(VertexOut in [[stage_in]],\n"
-         "                             texture2d<half, access::sample> texture [[texture(0)]]) {\n"
+         "                             constant DebugUniforms &uniforms [[buffer(1)]],\n"
+         "                             texture2d_array<half, access::sample> texture [[texture(0)]]) {\n"
          "    constexpr sampler linearSampler(coord::normalized, min_filter::linear, "
          "mag_filter::linear, mip_filter::linear);\n"
-         "    half4 texColor = texture.sample(linearSampler, in.texCoords);\n"
+         "    half4 texColor = texture.sample(linearSampler, in.texCoords, uint(round(uniforms.texLayerIndex)), "
+         "level(uniforms.texMipMapIndex));\n"
          "    return half4(in.color) * texColor;\n"
          "}\n";
 
@@ -524,10 +531,16 @@ void ImGui_ImplMetal_DestroyDeviceObjects() {
 
                     // Bind texture, Draw
                     if (pcmd->TextureId != NULL) {
-                        texture_id texture_id = *reinterpret_cast<struct texture_id*>(pcmd->TextureId);
+                        texture_id texture_id =
+                            *reinterpret_cast<struct texture_id *>(pcmd->TextureId);
                         [commandEncoder
                             setFragmentTexture:(__bridge id<MTLTexture>)(texture_id.texture)
                                        atIndex:0];
+
+                        const float debugConstants[2] = {static_cast<float>(texture_id.index), texture_id.mipmap};
+                        [commandEncoder setFragmentBytes:&debugConstants
+                                                  length:sizeof(debugConstants)
+                                                 atIndex:1];
                     }
 
                     [commandEncoder setVertexBufferOffset:(vertexBufferOffset +

@@ -135,6 +135,7 @@ struct texture_id {
     uint32_t height{0};
     uint32_t depth{1};
     uint32_t index{0};
+    float    mipmap{0.0f};
 };
 
 struct material_textures {
