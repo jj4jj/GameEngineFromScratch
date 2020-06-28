@@ -588,8 +588,12 @@ void D3d12GraphicsManager::CreateTexture(SceneObjectTexture& texture) {
                        0, 0, subresourceCount, &textureData);
 
     m_Buffers.push_back(pTextureUploadHeap);
+    texture_id texture_id;
+    texture_id.width = pImage->Width;
+    texture_id.height = pImage->Height;
+    texture_id.texture = reinterpret_cast<intptr_t>(pTextureBuffer); 
     m_Textures.emplace(texture.GetName(),
-                       reinterpret_cast<intptr_t>(pTextureBuffer));
+                       texture_id);
 }
 
 uint32_t D3d12GraphicsManager::CreateSamplerBuffer() {
@@ -1288,7 +1292,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                     m_pDev->CreateShaderResourceView(
                         reinterpret_cast<ID3D12Resource*>(
-                            m_Textures[texture->GetName()]),
+                            m_Textures[texture->GetName()].texture),
                         NULL, srvCpuHandle);
                 }
 
@@ -1300,7 +1304,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                     m_pDev->CreateShaderResourceView(
                         reinterpret_cast<ID3D12Resource*>(
-                            m_Textures[texture->GetName()]),
+                            m_Textures[texture->GetName()].texture),
                         NULL, srvCpuHandle);
                 }
 
@@ -1312,7 +1316,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                     m_pDev->CreateShaderResourceView(
                         reinterpret_cast<ID3D12Resource*>(
-                            m_Textures[texture->GetName()]),
+                            m_Textures[texture->GetName()].texture),
                         NULL, srvCpuHandle);
                 }
 
@@ -1324,7 +1328,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                     m_pDev->CreateShaderResourceView(
                         reinterpret_cast<ID3D12Resource*>(
-                            m_Textures[texture->GetName()]),
+                            m_Textures[texture->GetName()].texture),
                         NULL, srvCpuHandle);
                 }
 
@@ -1336,7 +1340,7 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
 
                     m_pDev->CreateShaderResourceView(
                         reinterpret_cast<ID3D12Resource*>(
-                            m_Textures[texture->GetName()]),
+                            m_Textures[texture->GetName()].texture),
                         NULL, srvCpuHandle);
                 }
 
@@ -1349,12 +1353,12 @@ void D3d12GraphicsManager::initializeGeometries(const Scene& scene) {
             // Bind global textures (t6, t10)
             // D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
             m_pDev->CreateShaderResourceView(
-                reinterpret_cast<ID3D12Resource*>(m_Textures["BRDF_LUT"]), NULL,
+                reinterpret_cast<ID3D12Resource*>(m_Textures["BRDF_LUT"].texture), NULL,
                 srvCpuHandle);
 
             srvCpuHandle.ptr += 4 * m_nCbvSrvUavDescriptorSize;
             m_pDev->CreateShaderResourceView(
-                reinterpret_cast<ID3D12Resource*>(m_Textures["SKYBOX"]), NULL,
+                reinterpret_cast<ID3D12Resource*>(m_Textures["SKYBOX"].texture), NULL,
                 srvCpuHandle);
 
             // UAV
@@ -1464,10 +1468,16 @@ void D3d12GraphicsManager::initializeSkyBox(const Scene& scene) {
     m_Buffers.push_back(pTextureUploadHeap);
 
     for (int32_t i = 0; i < GfxConfiguration::kMaxInFlightFrameCount; i++) {
-        m_Frames[i].skybox.texture = static_cast<intptr_t>(pTextureBuffer);
+        m_Frames[i].skybox.texture = reinterpret_cast<intptr_t>(pTextureBuffer);
     }
 
-    m_Textures.emplace("SKYBOX", static_cast<intptr_t>(pTextureBuffer));
+    texture_id texture_id;
+    texture_id.width = pImage->Width;
+    texture_id.height = pImage->Height;
+    texture_id.texture = reinterpret_cast<intptr_t>(pTextureBuffer); 
+    m_Textures.emplace(texture.GetName(),
+                       texture_id);
+    m_Textures.emplace("SKYBOX", texture_id);
 }
 
 void D3d12GraphicsManager::BeginScene(const Scene& scene) {
@@ -1796,41 +1806,44 @@ void D3d12GraphicsManager::DrawSkyBox(const Frame& frame) {
         m_dbcSkyBox.index_count, 1, 0, 0, 0);
 }
 
-intptr_t D3d12GraphicsManager::GenerateCubeShadowMapArray(
+texture_id D3d12GraphicsManager::GenerateCubeShadowMapArray(
     const uint32_t width, const uint32_t height, const uint32_t count) {
-    intptr_t texture_id = 0;
+    texture_id texture_id;
 
     return texture_id;
 }
 
-intptr_t D3d12GraphicsManager::GenerateShadowMapArray(const uint32_t width,
-                                                      const uint32_t height,
-                                                      const uint32_t count) {
-    intptr_t texture_id = 0;
+texture_id D3d12GraphicsManager::GenerateShadowMapArray(const uint32_t width,
+                                                        const uint32_t height,
+                                                        const uint32_t count) {
+    texture_id texture_id;
 
     return texture_id;
 }
 
-void D3d12GraphicsManager::BeginShadowMap(
-    const int32_t light_index, const intptr_t shadowmap, const uint32_t width,
-    const uint32_t height, const int32_t layer_index, const Frame& frame) {
-
-    D3D12_VIEWPORT view_port = {
-        0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height),
-        0.0f, 1.0f};
-    D3D12_RECT scissor_rect = {0, 0, static_cast<LONG>(width),
-                               static_cast<LONG>(height)};
+void D3d12GraphicsManager::BeginShadowMap(const int32_t light_index,
+                                          const texture_id& shadowmap,
+                                          const Frame& frame) {
+    D3D12_VIEWPORT view_port = {0.0f,
+                                0.0f,
+                                static_cast<float>(shadowmap.width),
+                                static_cast<float>(shadowmap.height),
+                                0.0f,
+                                1.0f};
+    D3D12_RECT scissor_rect = {0, 0, static_cast<LONG>(shadowmap.width),
+                               static_cast<LONG>(shadowmap.height)};
 
     m_pGraphicsCommandList[frame.frameIndex]->RSSetViewports(1, &view_port);
-    m_pGraphicsCommandList[frame.frameIndex]->RSSetScissorRects(1, &scissor_rect);
+    m_pGraphicsCommandList[frame.frameIndex]->RSSetScissorRects(1,
+                                                                &scissor_rect);
 
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
     // bind shadow map DSV
     dsvHandle =
         m_pDsvHeap[frame.frameIndex]->GetCPUDescriptorHandleForHeapStart();
     dsvHandle.ptr += light_index * m_nCbvSrvUavDescriptorSize;
-    m_pGraphicsCommandList[frame.frameIndex]->OMSetRenderTargets(0, nullptr, FALSE,
-                                                              &dsvHandle);
+    m_pGraphicsCommandList[frame.frameIndex]->OMSetRenderTargets(
+        0, nullptr, FALSE, &dsvHandle);
 
     ID3D12DescriptorHeap* ppHeaps[] = {m_pCbvSrvUavHeap, m_pSamplerHeap};
     m_pGraphicsCommandList[frame.frameIndex]->SetDescriptorHeaps(
@@ -1838,16 +1851,14 @@ void D3d12GraphicsManager::BeginShadowMap(
 
     m_pGraphicsCommandList[frame.frameIndex]->ClearDepthStencilView(
         dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-#
 }
 
-void D3d12GraphicsManager::EndShadowMap(const intptr_t shadowmap,
-                                        const int32_t layer_index) {}
+void D3d12GraphicsManager::EndShadowMap(const texture_id& shadowmap) {}
 
 void D3d12GraphicsManager::SetShadowMaps(const Frame& frame) {}
 
-void D3d12GraphicsManager::ReleaseTexture(intptr_t texture) {
-    ID3D12Resource* pTmp = reinterpret_cast<ID3D12Resource*>(texture);
+void D3d12GraphicsManager::ReleaseTexture(texture_id& texture) {
+    ID3D12Resource* pTmp = reinterpret_cast<ID3D12Resource*>(texture.texture);
     SafeRelease(&pTmp);
 }
 
@@ -1884,7 +1895,11 @@ void D3d12GraphicsManager::GenerateTextureForWrite(const char* id,
         return;
     }
 
-    m_Textures.emplace(id, reinterpret_cast<intptr_t>(pTextureBuffer));
+    texture_id texture_id;
+    texture_id.width = width;
+    texture_id.height = height;
+    texture_id.texture = reinterpret_cast<intptr_t>(pTextureBuffer);
+    m_Textures.emplace(id, texture_id);
 }
 
 void D3d12GraphicsManager::BindTextureForWrite(const char* texture,
@@ -1898,7 +1913,7 @@ void D3d12GraphicsManager::BindTextureForWrite(const char* texture,
         D3D12_CPU_DESCRIPTOR_HANDLE uavCpuHandle;
         uavCpuHandle = m_pCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
         m_pDev->CreateUnorderedAccessView(
-            reinterpret_cast<ID3D12Resource*>(it->second), NULL, NULL,
+            reinterpret_cast<ID3D12Resource*>(it->second.texture), NULL, NULL,
             uavCpuHandle);
 
         D3D12_GPU_DESCRIPTOR_HANDLE uavGpuHandle;
